@@ -1,7 +1,8 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import { useAuth } from "react-oidc-context";
 import { Link, Outlet, useNavigate } from "react-router";
 
+import { clearLocalSignIn, forgetSignInRecovery, recoverFromBrokenSignIn } from "../auth.ts";
 import { usePlainQuery } from "../plain/hooks.ts";
 import { getViewer, type Viewer } from "../plain/operations.ts";
 import { Avatar } from "./Avatar.tsx";
@@ -28,20 +29,35 @@ export function AppShell() {
   const auth = useAuth();
   const navigate = useNavigate();
   const viewer = usePlainQuery(getViewer, []);
+  const signedOut = useRef(false);
+
+  const user = viewer.data?.myUser;
+  const workspace = viewer.data?.myWorkspace;
+  // Plain does not require a workspace on the sign-in screen. Continuing
+  // without one yields a token that can never load this app, and the next
+  // login replays it. Sign out before that loop starts.
+  const missingWorkspace = !viewer.isLoading && !viewer.error && !!viewer.data && (!user || !workspace);
+
+  useEffect(() => {
+    if (user && workspace) forgetSignInRecovery();
+  }, [user, workspace]);
+
+  useEffect(() => {
+    if (!missingWorkspace || signedOut.current) return;
+    signedOut.current = true;
+    void recoverFromBrokenSignIn(auth, "workspace");
+  }, [auth, missingWorkspace]);
 
   // There is no token revocation endpoint, so signing out forgets the tokens
   // in this browser. They stop working when they expire.
   async function signOut() {
-    await auth.removeUser();
+    await clearLocalSignIn(auth);
     navigate("/", { replace: true });
   }
 
-  if (viewer.isLoading) {
-    return <LoadingScreen label="Loading your workspace…" />;
+  if (viewer.isLoading || missingWorkspace) {
+    return <LoadingScreen label={missingWorkspace ? "Signing you out…" : "Loading your workspace…"} />;
   }
-
-  const user = viewer.data?.myUser;
-  const workspace = viewer.data?.myWorkspace;
 
   if (viewer.error || !user || !workspace) {
     return (
