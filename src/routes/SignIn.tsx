@@ -1,7 +1,7 @@
 import { useAuth } from "react-oidc-context";
 import { Navigate, useLocation } from "react-router";
 
-import { signIn } from "../auth.ts";
+import { currentSignInRecovery, signIn } from "../auth.ts";
 import { Button } from "../components/Button.tsx";
 import { CenteredCard, LoadingScreen } from "../components/CenteredCard.tsx";
 import { Notice } from "../components/Notice.tsx";
@@ -25,6 +25,8 @@ export function SignIn() {
     return <Navigate to="/threads" replace />;
   }
 
+  const recovery = currentSignInRecovery();
+
   return (
     <CenteredCard>
       <div className={styles.logo} aria-hidden>
@@ -44,12 +46,24 @@ export function SignIn() {
         </p>
       </div>
 
-      {state.sessionExpired && (
+      {recovery === "workspace" && (
+        <Notice tone="warning" title="Choose a workspace">
+          You continued without choosing a workspace, so you were signed out and the saved session was cleared. Sign in
+          again and pick a workspace before continuing.
+        </Notice>
+      )}
+      {recovery === "bounced" && (
+        <Notice tone="warning" title="Sign-in was reset">
+          That sign-in brought you back here, so you were signed out and the saved session was cleared. Sign in again
+          and choose a workspace when asked.
+        </Notice>
+      )}
+      {state.sessionExpired && !recovery && (
         <Notice tone="warning" title="Your session expired">
           Sign in again to continue.
         </Notice>
       )}
-      {auth.error && !state.sessionExpired && (
+      {auth.error && !state.sessionExpired && !recovery && (
         <Notice tone="error" title="Sign-in failed">
           {auth.error.message}
         </Notice>

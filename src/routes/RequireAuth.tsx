@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { Navigate, Outlet, useLocation } from "react-router";
 
+import { clearLocalSignIn } from "../auth.ts";
 import { LoadingScreen } from "../components/CenteredCard.tsx";
 import type { SignInLocationState } from "./SignIn.tsx";
 
@@ -20,7 +21,7 @@ export function RequireAuth() {
     if (!canRenew || renewStarted.current) return;
     renewStarted.current = true;
     auth.signinSilent().catch(async () => {
-      await auth.removeUser();
+      await clearLocalSignIn(auth);
       setRenewFailed(true);
     });
   }, [auth, canRenew]);

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type DependencyList } from "react";
 import { useAuth } from "react-oidc-context";
 import { useNavigate } from "react-router";
 
+import { clearLocalSignIn } from "../auth.ts";
 import type { SignInLocationState } from "../routes/SignIn.tsx";
 import { PlainAuthError } from "./client.ts";
 
@@ -10,7 +11,7 @@ function useEndExpiredSession() {
   const auth = useAuth();
   const navigate = useNavigate();
   return useCallback(async () => {
-    await auth.removeUser();
+    await clearLocalSignIn(auth);
     const state: SignInLocationState = { sessionExpired: true };
     navigate("/", { replace: true, state });
   }, [auth, navigate]);

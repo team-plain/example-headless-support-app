@@ -58,7 +58,7 @@ Vite bundles every `VITE_` variable into the JavaScript it sends to the browser,
 
 | File | What it shows |
 | --- | --- |
-| [`src/auth.ts`](src/auth.ts) | The whole OAuth configuration: authority, client ID, redirect URL, scopes, refresh and nonce. |
+| [`src/auth.ts`](src/auth.ts) | The whole OAuth configuration: authority, client ID, redirect URL, scopes, refresh, nonce, and clearing a sign-in that bounced or has no workspace. |
 | [`src/main.tsx`](src/main.tsx) | `AuthProvider` wiring. It completes the sign-in when Plain redirects back. |
 | [`src/routes/RequireAuth.tsx`](src/routes/RequireAuth.tsx) | Protecting pages, and refreshing a token that expired while the tab was asleep. |
 | [`src/components/AppShell.tsx`](src/components/AppShell.tsx) | Loading the signed-in person and workspace with `myUser` and `myWorkspace`, and signing out. |
@@ -91,12 +91,15 @@ sequenceDiagram
    - `oidc-client-ts` creates a random `state` and a PKCE code verifier, and stores both in `sessionStorage`.
    - It sends the browser to `/oauth2/authorize` with `scope=openid offline_access`. `offline_access` is what gets you a refresh token.
    - Plain requires a `nonce`, which we generate with `crypto.randomUUID()`.
+   - Plain's sign-in screen asks which workspace to use, but it does not require an answer. Continuing without one issues a token that has no workspace.
 2. **Callback.** Plain redirects back to `/callback?code=...&state=...`.
    - `AuthProvider` checks `state` and exchanges the code at `/oauth2/token` with the PKCE verifier. No client secret is involved.
    - It rejects an ID token whose `nonce` doesn't match.
+   - If that fails and the person would land back on the sign-in page, the app signs them out and clears stored OIDC state first. The next sign-in sends `prompt=login` so Plain does not replay the session that just failed.
 3. **Calling the API.** Every GraphQL request sends `Authorization: Bearer <access_token>`, exactly like an API key. Plain runs the call as the person who signed in.
 4. **Staying signed in.** Shortly before the access token expires, `automaticSilentRenew` swaps the refresh token for a new access token. If the tab slept past expiry, [`RequireAuth`](src/routes/RequireAuth.tsx) refreshes it once on the next page load.
-5. **Signing out.** Sign-out deletes the tokens from this browser. Plain's authorization server has no revocation or end-session endpoint, so the deleted access token would keep working until it expires.
+5. **Signing out.** Sign-out deletes the user and any in-flight PKCE state from this browser (`sessionStorage` and any older `localStorage` keys). Plain's authorization server has no revocation or end-session endpoint, so the deleted access token would keep working until it expires.
+6. **No workspace.** If `myWorkspace` is null, the sign-in is not usable. The app signs the person out, clears the saved session, and the next "Sign in" uses `prompt=login` so they get the workspace step again instead of the same token.
 
 If Plain rejects a token (it expired, or the OAuth app was turned off or deleted), the app drops the local session and asks you to sign in again. Turning an OAuth app off in Plain rejects every token it holds until you turn it back on.
 
