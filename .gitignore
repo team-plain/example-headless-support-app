@@ -1,0 +1,10 @@
+node_modules
+dist
+*.tsbuildinfo
+
+# Local env files hold your own OAuth app settings
+.env.local
+.env.*.local
+
+npm-debug.log*
+.DS_Store

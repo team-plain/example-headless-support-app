@@ -1,0 +1,43 @@
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding-left: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--text-sm);
+}
+
+.field span {
+  color: var(--color-text-subtle);
+}
+
+.field select {
+  appearance: none;
+  field-sizing: content;
+  height: 100%;
+  padding: 0 calc(var(--space-3) + 16px) 0 var(--space-2);
+  border: none;
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E")
+    no-repeat right var(--space-3) center / 12px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.field select:focus-visible {
+  outline: none;
+}
+
+.field:focus-within {
+  border-color: var(--color-accent);
+}
